@@ -25,6 +25,7 @@ class TestEchoService(unittest.TestCase):
         super().setUp()
         self.client = clientserver.Client()  # create new client for each test
 
+    # TODO write more tests & modify this one below
     def test_srv_get(self):  # each test_* function is a test
         """Test simple call"""
         msg = self.client.call("Hello VS2Lab")
