@@ -76,6 +76,7 @@ class Server:
                             connection.send(f"Warning: Name {name} is not present in the phone number database.".encode('ascii'))
                     else:
                         self._logger.warning(f"Warning: Invalid method '{data_decoded}'.")
+                        connection.send(f"Warning: Invalid method '{data_decoded}'.".encode('ascii'))
                 connection.close()  # close the connection
             except socket.timeout:
                 pass  # ignore timeouts
