@@ -32,17 +32,15 @@ class Client:
         msglst = (constRPC.APPEND, data, db_list)  # message payload
         self.chan.send_to(self.server, msglst)  # send msg to server
         msgrcv = self.chan.receive_from(self.server)  # wait for response
-        self.onReceivedResponse(dictionary, msgrcv[1]) # pass it to caller
-    
-    def onReceivedResponse(self, return_dictionary, response):
-        return_dictionary["foo_bar"] = response.value
+        dictionary["foo_bar"] = msgrcv[1].value
+        callback()
 
 
 class Server:
     def __init__(self):
         self.chan = lab_channel.Channel()
         self.server = self.chan.join('server')
-        self.timeout = 3
+        self.timeout = 30
 
     @staticmethod
     def append(data, db_list):
@@ -58,7 +56,7 @@ class Server:
                 msgrpc = msgreq[1]  # fetch call & parameters
                 if constRPC.APPEND == msgrpc[0]:  # check what is being requested
                     result = self.append(msgrpc[1], msgrpc[2])  # do local call
-                    time.sleep(10)
+                    time.sleep(20)
                     self.chan.send_to({client}, result)  # return response
                 else:
                     pass  # unsupported request, simply ignore

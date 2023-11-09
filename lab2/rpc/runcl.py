@@ -5,6 +5,13 @@ import time
 
 from context import lab_logging
 
+can_print = False
+
+def onReceivedResponse():
+    if(can_print is True):
+        print(result_list["foo_bar"])
+
+
 lab_logging.setup(stream_level=logging.INFO)
 
 cl = rpc.Client()
@@ -15,15 +22,15 @@ cl.run()
 base_list = rpc.DBList({'foo'})
 result_list = {}
 result_list["foo_bar"] = None
-thread = threading.Thread(target=cl.append, args=('bar', base_list, cl.onReceivedResponse, result_list))
+
+thread = threading.Thread(target=cl.append, args=('bar', base_list, onReceivedResponse, result_list))
 thread.start()
 counter = 0
-while(True):
+for i in range(20):
     time.sleep(1)
-    counter = counter + 1
-    print(counter)
-    if(result_list["foo_bar"] != None):
-        break
+    print(i)
+
+can_print = True
 
 result = result_list["foo_bar"]
 
