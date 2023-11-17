@@ -5,11 +5,9 @@ import time
 
 from context import lab_logging
 
-can_print = False
 
 def onReceivedResponse():
-    if(can_print is True):
-        print(result_list["foo_bar"])
+    print(result_list["foo_bar"])
 
 
 lab_logging.setup(stream_level=logging.INFO)
@@ -29,8 +27,6 @@ counter = 0
 for i in range(20):
     time.sleep(1)
     print(i)
-
-can_print = True
 
 result = result_list["foo_bar"]
 
