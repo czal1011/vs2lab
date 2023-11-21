@@ -31,7 +31,7 @@ else:
 
 time.sleep(1) 
 
-print(f"{me} started")
+print("{} started".format(me))
 
 while True:
     work = sub_socket.recv()
@@ -42,7 +42,8 @@ while True:
     else:
         counted_words[word] = 1
     print(f"--------------------------\n"
-    + f"Reducer {me} added word {word}. Aggregated words:\n")
+    + "Reducer {me} added word {word}. Aggregated words:\n")
     for counted_word in counted_words:
         print(f"{counted_word}: {counted_words[counted_word]}")
     print(f"--------------------------\n")
+        
