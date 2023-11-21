@@ -42,8 +42,7 @@ while True:
     else:
         counted_words[word] = 1
     print(f"--------------------------\n"
-    + "Reducer {me} added word {word}. Aggregated words:\n")
+    + f"Reducer {me} added word {word}. Aggregated words:\n")
     for counted_word in counted_words:
-        print(f"{counted_word}: {counted_words[counted_word]}")
+        print(f"{str(counted_word)[4]}: {counted_words[counted_word]}")
     print(f"--------------------------\n")
-        
