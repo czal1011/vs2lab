@@ -17,5 +17,12 @@ assignment_schema = {
     "e": 2,
     "f": 2,
     "g": 1,
-    "h": 2
+    "h": 2,
+    "das": 1,
+    "ist": 1,
+    "haus": 2,
+    "vom": 1,
+    "nikolaus": 2,
+    "der": 1,
+    "raus": 2
 }

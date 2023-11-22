@@ -44,5 +44,5 @@ while True:
     print(f"--------------------------\n"
     + f"Reducer {me} added word {word}. Aggregated words:\n")
     for counted_word in counted_words:
-        print(f"{str(counted_word)[4]}: {counted_words[counted_word]}")
+        print(f"{str(counted_word)[4:-1]}: {counted_words[counted_word]}")
     print(f"--------------------------\n")
