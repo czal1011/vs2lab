@@ -36,7 +36,7 @@ print("{} started".format(me))
 while True:
     work = sub_socket.recv()
     print(f"Reducer {me} received workload.")
-    word = work[16:]
+    word = work.decode("utf-8")[18:]
     if(word in counted_words):
         counted_words[word] = counted_words[word] + 1
     else:
@@ -44,5 +44,5 @@ while True:
     print(f"--------------------------\n"
     + f"Reducer {me} added word {word}. Aggregated words:\n")
     for counted_word in counted_words:
-        print(f"{str(counted_word)[4:-1]}: {counted_words[counted_word]}")
+        print(f"{str(counted_word)}: {counted_words[counted_word]}")
     print(f"--------------------------\n")
