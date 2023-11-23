@@ -40,6 +40,6 @@ while True:
         if(word == ''):
             continue
         print(word)
-        reducer = constPipe.assignment_schema[word]
+        reducer = 1 + len(word) % 2
         print(f"Reducer: {reducer}")
         pub_socket.send(("MSG_TO_REDUCER_{}: {}".format(reducer, word)).encode())
