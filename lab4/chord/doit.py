@@ -30,10 +30,14 @@ class DummyChordClient:
         self.channel.bind(self.node_id)
 
     def run(self):
-        print("Implement me pls...")
-        key_to_look_up = random.randrange(0, pow(2, self.channel.MAXPROC))
-        node: chord_node = random.choice(list(self.channel.channel.smembers('node')))
-        self.channel.send_to(self, constChord.LOOKUP_REQ) # TODO change self to something iterable
+        node: chord_node = random.choice(list(self.channel.channel.smembers('node'))).decode()
+        key = random.randrange(0, self.channel.MAXPROC)
+        print(f"Asking node {node} to look for key {key}...")
+        self.channel.send_to({node}, (constChord.LOOKUP_REQ, key, self.node_id))
+        response = self.channel.receive_from_any()  # Wait for any request
+        answer = response[1]
+        print(f"Key {key} is managed by node {answer[1]}.")
+        
         self.channel.send_to(  # a final multicast
             {i.decode() for i in list(self.channel.channel.smembers('node'))},
             constChord.STOP)

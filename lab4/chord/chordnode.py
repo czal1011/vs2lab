@@ -151,13 +151,19 @@ class ChordNode:
                                  .format(self.node_id, int(request[1]), int(sender)))
 
                 key = int(request[1])
+                client = request[2]
+                print(f"\nRequest: (Type: {request[0]}, Key: {key}, Client: {client})")
+
+                next_id: int = self.local_successor_node(key) # best possible node in finger table
+                print("Next ID:", next_id)
 
                 # look up and return local successor recursively
-                next_id: int = self.local_successor_node(key)
-                if key <= next_id or key == next_id + self.MAXPROC - 1:
-                    self.channel.send_to([sender], (constChord.LOOKUP_REP, next_id))
+                if self.in_between(key, self.finger_table[0] + 1, self.node_id + 1):
+                    print(f"Successor found: {next_id}")
+                    self.channel.send_to([str(client)], (constChord.LOOKUP_REP, next_id))
                 else:
-                    self.channel.send_to(str(next_id), (constChord.LOOKUP_REQ, key))
+                    print(f"Looking for successor: {next_id} -> {key}")
+                    self.channel.send_to({str(next_id)}, (constChord.LOOKUP_REQ, key, client))
 
                 # Finally do a sanity check
                 if not self.channel.exists(next_id):  # probe for existence
