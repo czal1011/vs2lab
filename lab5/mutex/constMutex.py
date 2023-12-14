@@ -1,3 +1,5 @@
 ENTER   = '1'
 ALLOW   = '2'
 RELEASE = '3'
+HEARTBEAT_REQ = '4'
+HEARTBEAT_RES = '5'

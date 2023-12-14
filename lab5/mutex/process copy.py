@@ -29,9 +29,11 @@ class Process:
 
     <Message>: (Timestamp, Process_ID, <Request_Type>)
 
-    <Request Type>: ENTER | ALLOW  | RELEASE | HEARTBEAT_REQ | HEARTBEAT_RES
+    <Request Type>: ENTER | ALLOW  | RELEASE
 
     """
+
+    #active_processes: list = [] # For heartbeat
 
     def __init__(self, chan):
         self.channel = chan  # Create ref to actual channel
@@ -92,7 +94,7 @@ class Process:
 
     def __receive(self):
          # Pick up any message
-        _receive = self.channel.receive_from(self.other_processes, 5) 
+        _receive = self.channel.receive_from(self.other_processes, 5)
         if _receive:
             msg = _receive[1]
 
@@ -119,34 +121,29 @@ class Process:
                 del (self.queue[0])  # Just remove first message
             elif msg[2] == HEARTBEAT_REQ:
                 self.clock = self.clock + 1
-                self.channel.send_to([msg[1]], (self.clock, self.process_id, HEARTBEAT_RES))
+                self.channel.send_to(msg[1], (self.clock, self.process_id, HEARTBEAT_RES))
             elif msg[2] == HEARTBEAT_RES:
                 self.clock = self.clock + 1
                 active_processes.proc_list.append(msg[1])
 
             self.__cleanup_queue()  # Finally sort and cleanup the queue
-
-        else:
+        else:        
             self.logger.warning("{} timed out on RECEIVE.".format(self.__mapid()))
-            if(active_processes.proc_list.__len__() == 0):
+            if(active_processes.proc_list.__len__ == 0):
                 self.channel.send_to(self.other_processes, (self.clock, self.process_id, HEARTBEAT_REQ))
             else:
                 for process in list(set(self.other_processes) - set(active_processes.proc_list)):
                     self.all_processes.remove(process)
                     self.other_processes.remove(process)
-                    for element in self.queue:
-                        if(element[1] == process):
-                            self.queue.remove(element)
                 active_processes.proc_list = []
 
-            #for element in self.queue:
-            #    print(self.__mapid(self.process_id), f"({element[0]}, {self.__mapid(element[1])}, {element[2]})")
-        
-            # 1st timeout: hbreq other processes
+            #
+            # 1st timeout: ping / hbreq other processes
             # 2nd: compare other_processes with new list
             # remove processes that are not in both lists
             # remove dead processes from all queues
-            
+
+            # ! don't forget to clear active_processes at some time!
 
     def init(self):
         self.channel.bind(self.process_id)
@@ -165,8 +162,8 @@ class Process:
         while True:
             # Enter the critical section if there are more than one process left
             # and random is true
-            if len(self.all_processes) > 1 and \
-                    random.choice([True, False]):
+            if len(self.all_processes) > 1 and random.choice([True, False]):
+                print(self.process_id, ": ", self.queue)
                 self.logger.debug("{} wants to ENTER CS at CLOCK {}."
                     .format(self.__mapid(), self.clock))
 
@@ -178,16 +175,20 @@ class Process:
                 sleep_time = random.randint(0, 2000)
                 self.logger.debug("{} enters CS for {} milliseconds."
                     .format(self.__mapid(), sleep_time))
-                #print(" CS <- {}".format(self.__mapid()))
-                print(" CS <- {} ({})".format(self.__mapid(), self.process_id))
+                print(" CS <- {}".format(self.__mapid()))
                 time.sleep(sleep_time/1000)
 
                 # ... then leave CS
-                print(" CS -> {} ({})".format(self.__mapid(), self.process_id))
-                #print(f" CS -> {self.process_id}")
+                print(" CS -> {}".format(self.__mapid()))
                 self.__release()
                 continue
 
             # Occasionally serve requests to enter (
             if random.choice([True, False]):
                 self.__receive()
+
+"""
+Beim Auswählen des nächsten Prozesses: Heartbeat senden (wo?)
+Bei HEARTBEAT_RES: Prozess darf CS betreten
+Bei Timeout: ???
+"""
