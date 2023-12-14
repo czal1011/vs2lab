@@ -1,7 +1,6 @@
 import logging
 import random
 import time
-import active_processes
 
 from constMutex import ENTER, RELEASE, ALLOW, HEARTBEAT_REQ, HEARTBEAT_RES
 
@@ -38,6 +37,7 @@ class Process:
         self.process_id = self.channel.join('proc')  # Find out who you are
         self.all_processes: list = []  # All procs in the proc group
         self.other_processes: list = []  # Needed to multicast to others
+        self.active_processes: list = []
         self.queue = []  # The request queue list
         self.clock = 0  # The current logical clock
         self.logger = logging.getLogger("vs2lab.lab5.mutex.process.Process")
@@ -122,23 +122,23 @@ class Process:
                 self.channel.send_to([msg[1]], (self.clock, self.process_id, HEARTBEAT_RES))
             elif msg[2] == HEARTBEAT_RES:
                 self.clock = self.clock + 1
-                active_processes.proc_list.append(msg[1])
+                self.active_processes.append(msg[1])
 
             self.__cleanup_queue()  # Finally sort and cleanup the queue
 
         else:
             self.logger.warning("{} timed out on RECEIVE.".format(self.__mapid()))
-            if(active_processes.proc_list.__len__() == 0):
+            if(self.active_processes.__len__() == 0):
                 self.channel.send_to(self.other_processes, (self.clock, self.process_id, HEARTBEAT_REQ))
-                active_processes.proc_list.append(self.process_id)
+                self.active_processes.append(self.process_id)
             else:
-                for process in list(set(self.all_processes) - set(active_processes.proc_list)):
+                for process in list(set(self.all_processes) - set(self.active_processes)):
                     self.all_processes.remove(process)
                     self.other_processes.remove(process)
                     for element in self.queue:
                         if(element[1] == process):
                             self.queue.remove(element)
-                active_processes.proc_list = []
+                self.active_processes = []
 
             #for element in self.queue:
             #    print(self.__mapid(self.process_id), f"({element[0]}, {self.__mapid(element[1])}, {element[2]})")
@@ -176,7 +176,7 @@ class Process:
                     self.__receive()
 
                 # Stay in CS for some time ...
-                sleep_time = random.randint(0, 2000)
+                sleep_time = random.randint(0, 1000)
                 self.logger.debug("{} enters CS for {} milliseconds."
                     .format(self.__mapid(), sleep_time))
                 #print(" CS <- {}".format(self.__mapid()))
