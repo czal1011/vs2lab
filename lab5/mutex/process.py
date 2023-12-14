@@ -130,8 +130,9 @@ class Process:
             self.logger.warning("{} timed out on RECEIVE.".format(self.__mapid()))
             if(active_processes.proc_list.__len__() == 0):
                 self.channel.send_to(self.other_processes, (self.clock, self.process_id, HEARTBEAT_REQ))
+                active_processes.proc_list.append(self.process_id)
             else:
-                for process in list(set(self.other_processes) - set(active_processes.proc_list)):
+                for process in list(set(self.all_processes) - set(active_processes.proc_list)):
                     self.all_processes.remove(process)
                     self.other_processes.remove(process)
                     for element in self.queue:
