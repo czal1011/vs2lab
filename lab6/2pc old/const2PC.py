@@ -15,8 +15,5 @@ NEED_DECISION = 'NEED_DECISION'
 LOCAL_ABORT = 'LOCAL_ABORT'
 LOCAL_SUCCESS = 'LOCAL_SUCCESS'
 
-# find new coordinator
-PROC_ID_REQ = 'PROC_ID_REQ'
-
 # fail-noisy crash timeout
 TIMEOUT = 1

@@ -4,9 +4,9 @@ import logging
 # coordinator messages
 from const2PC import VOTE_REQUEST, GLOBAL_COMMIT, GLOBAL_ABORT, PREPARE_COMMIT
 # participant decissions
-from const2PC import LOCAL_SUCCESS, LOCAL_ABORT, READY_COMMIT
+from const2PC import LOCAL_SUCCESS, LOCAL_ABORT
 # participant messages
-from const2PC import VOTE_COMMIT, VOTE_ABORT, NEED_DECISION, PROC_ID_REQ
+from const2PC import VOTE_COMMIT, VOTE_ABORT, NEED_DECISION, READY_COMMIT
 # misc constants
 from const2PC import TIMEOUT
 
@@ -49,15 +49,6 @@ class Participant:
         self.all_participants = self.channel.subgroup('participant')
         self._enter_state('INIT')  # Start in local INIT state.
 
-    def find_new_coordinator(self):
-        self.channel.send_to(self.all_participants, PROC_ID_REQ)
-
-        yet_to_receive = list(self.all_participants)
-        while len(yet_to_receive) > 0:
-            msg = self.channel.receive_from(self.all_participants, TIMEOUT)
-            # if(msg[2] > self.) # find process with largest process id, somehow
-            # wann soll auf PROC_ID_REQ gehört werden?
-
     def run(self):
         # Wait for start of joint commit
         msg = self.channel.receive_from(self.coordinator, TIMEOUT)
@@ -84,7 +75,7 @@ class Participant:
                 self._enter_state('READY')
 
                 # Notify coordinator about local commit vote
-                self.channel.send_to(self.coordinator, READY_COMMIT)
+                self.channel.send_to(self.coordinator, VOTE_COMMIT)
 
                 # Wait for coordinator to notify the final outcome
                 msg = self.channel.receive_from(self.coordinator, TIMEOUT)
@@ -97,7 +88,7 @@ class Participant:
                         # If someone reports a final decision,
                         # we locally adjust to it
                         if msg[1] in [
-                                PREPARE_COMMIT, GLOBAL_ABORT, LOCAL_ABORT]:
+                                GLOBAL_COMMIT, GLOBAL_ABORT, LOCAL_ABORT]:
                             decision = msg[1]
                             break
 
@@ -107,12 +98,25 @@ class Participant:
         # Change local state based on the outcome of the joint commit protocol
         # Note: If the protocol has blocked due to coordinator crash,
         # we will never reach this point
-        if decision == GLOBAL_COMMIT:
-            self._enter_state('COMMIT')
+        if decision == PREPARE_COMMIT:
+            self._enter_state('PRECOMMIT')
         else:
             assert decision in [GLOBAL_ABORT, LOCAL_ABORT]
             self._enter_state('ABORT')
         
+        self.channel.send_to(self.coordinator, READY_COMMIT)
+
+        msg = self.channel.receive_from(self.coordinator, TIMEOUT)
+
+        if(not msg or msg[1] == GLOBAL_ABORT):
+            self._enter_state('ABORT')
+        else:
+            assert msg[1] == GLOBAL_COMMIT
+            self._enter_state('COMMIT')
+        # check for global_commit
+        # true: state = COMMIT
+        # false: state = ABORT
+
         # Help any other participant when coordinator crashed
         num_of_others = len(self.all_participants) - 1
         while num_of_others > 0:
