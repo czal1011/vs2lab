@@ -4,9 +4,9 @@ import logging
 import stablelog
 
 # coordinator messages
-from const2PC import VOTE_REQUEST, GLOBAL_COMMIT, GLOBAL_ABORT, PREPARE_COMMIT
+from const2PC import VOTE_REQUEST, GLOBAL_COMMIT, GLOBAL_ABORT
 # participant messages
-from const2PC import VOTE_COMMIT, VOTE_ABORT, READY_COMMIT
+from const2PC import VOTE_COMMIT, VOTE_ABORT
 # misc constants
 from const2PC import TIMEOUT
 
@@ -70,13 +70,9 @@ class Coordinator:
                 yet_to_receive.remove(msg[0])
 
         # all participants have locally committed
-        self._enter_state('PRECOMMIT')
+        self._enter_state('COMMIT')
 
         # Inform all participants about global commit
-        self.channel.send_to(self.participants, PREPARE_COMMIT)
-        
-        self._enter_state('COMMIT')
         self.channel.send_to(self.participants, GLOBAL_COMMIT)
-
         return "Coordinator {} terminated in state COMMIT."\
             .format(self.coordinator)
