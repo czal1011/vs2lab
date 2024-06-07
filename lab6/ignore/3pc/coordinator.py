@@ -4,11 +4,11 @@ import logging
 import stablelog
 
 # coordinator messages
-from const3PC import VOTE_REQUEST, GLOBAL_COMMIT, GLOBAL_ABORT
+from const2PC import VOTE_REQUEST, GLOBAL_COMMIT, GLOBAL_ABORT, PREPARE_COMMIT
 # participant messages
-from const3PC import VOTE_COMMIT, VOTE_ABORT
+from const2PC import VOTE_COMMIT, VOTE_ABORT, READY_COMMIT
 # misc constants
-from const3PC import TIMEOUT
+from const2PC import TIMEOUT
 
 
 class Coordinator:
@@ -25,7 +25,7 @@ class Coordinator:
         self.log = stablelog.create_log("coordinator-" + self.coordinator)
         self.stable_log = stablelog.create_log("coordinator-"
                                                + self.coordinator)
-        self.logger = logging.getLogger("vs2lab.lab6.3pc.Coordinator")
+        self.logger = logging.getLogger("vs2lab.lab6.2pc.Coordinator")
         self.state = None
 
     def _enter_state(self, state):
@@ -64,12 +64,26 @@ class Coordinator:
                 self.channel.send_to(self.participants, GLOBAL_ABORT)
                 return "Coordinator {} terminated in state ABORT. Reason: {}."\
                     .format(self.coordinator, reason)
-
             else:
                 assert msg[1] == VOTE_COMMIT
                 yet_to_receive.remove(msg[0])
 
         # all participants have locally committed
+        self._enter_state('PRECOMMIT')
+        self.channel.send_to(self.participants, PREPARE_COMMIT)
+
+        yet_to_receive = list(self.participants)
+        while len(yet_to_receive) > 0:
+            msg = self.channel.receive_from(self.participants, TIMEOUT)
+
+            if not msg:
+                assert not msg
+                self.participants.remove(msg[0])
+                yet_to_receive.remove(msg[0])
+            else:
+                assert msg[1] == READY_COMMIT
+                yet_to_receive.remove(msg[0])
+        
         self._enter_state('COMMIT')
 
         # Inform all participants about global commit

@@ -2,13 +2,13 @@ import random
 import logging
 
 # coordinator messages
-from const3PC import VOTE_REQUEST, GLOBAL_COMMIT, GLOBAL_ABORT
+from const2PC import VOTE_REQUEST, GLOBAL_COMMIT, GLOBAL_ABORT, PREPARE_COMMIT
 # participant decissions
-from const3PC import LOCAL_SUCCESS, LOCAL_ABORT
+from const2PC import LOCAL_SUCCESS, LOCAL_ABORT
 # participant messages
-from const3PC import VOTE_COMMIT, VOTE_ABORT, NEED_DECISION
+from const2PC import VOTE_COMMIT, VOTE_ABORT, NEED_DECISION, READY_COMMIT
 # misc constants
-from const3PC import TIMEOUT
+from const2PC import TIMEOUT, NEW_COORDINATOR, GET_STATE, MY_STATE
 
 import stablelog
 
@@ -27,7 +27,7 @@ class Participant:
         self.participant = self.channel.join('participant')
         self.stable_log = stablelog.create_log(
             "participant-" + self.participant)
-        self.logger = logging.getLogger("vs2lab.lab6.3pc.Participant")
+        self.logger = logging.getLogger("vs2lab.lab6.2pc.Participant")
         self.coordinator = {}
         self.all_participants = {}
         self.state = 'NEW'
@@ -48,6 +48,27 @@ class Participant:
         self.coordinator = self.channel.subgroup('coordinator')
         self.all_participants = self.channel.subgroup('participant')
         self._enter_state('INIT')  # Start in local INIT state.
+
+    def finish_transaction(self, should_commit):
+        self.channel.send_to(all_participants, GET_STATE)
+        yet_to_receive = list(self.participants)
+        while len(yet_to_receive) > 0:
+            msg = self.channel.receive_from(self.participants, TIMEOUT)
+
+            if (not msg) or (msg[1] == 'INIT'):
+                self._enter_state('ABORT')
+                self.channel.send_to(self.all_participants, GLOBAL_ABORT)
+                return "New Coordinator {} terminated in state ABORT. Reason: {}."\
+                    .format(self.coordinator, reason)
+            else:
+                yet_to_receive.remove(msg[0])
+        self._enter_state('COMMIT')
+        self.channel.send_to(self.all_participants, GLOBAL_COMMIT)
+
+    def find_new_coordinator(self):
+        new_coordinator = min(self.all_participants)
+        self.channel.send_to(self.all_participants, NEW_COORDINATOR, new_coordinator)
+        self.coordinator = new_coordinator
 
     def run(self):
         # Wait for start of joint commit
@@ -81,6 +102,11 @@ class Participant:
                 msg = self.channel.receive_from(self.coordinator, TIMEOUT)
 
                 if not msg:  # Crashed coordinator
+                    # Find new coordinator
+                    find_new_coordinator()
+                    
+
+                    """
                     # Ask all processes for their decisions
                     self.channel.send_to(self.all_participants, NEED_DECISION)
                     while True:
@@ -91,18 +117,23 @@ class Participant:
                                 GLOBAL_COMMIT, GLOBAL_ABORT, LOCAL_ABORT]:
                             decision = msg[1]
                             break
+                    """
 
                 else:  # Coordinator came to a decision
                     decision = msg[1]
 
-        # Change local state based on the outcome of the joint commit protocol
-        # Note: If the protocol has blocked due to coordinator crash,
-        # we will never reach this point
-        if decision == GLOBAL_COMMIT:
-            self._enter_state('COMMIT')
-        else:
-            assert decision in [GLOBAL_ABORT, LOCAL_ABORT]
-            self._enter_state('ABORT')
+            # Change local state based on the outcome of the joint commit protocol
+            # Note: If the protocol has blocked due to coordinator crash,
+            # we will hopefully reach this point
+            if decision == PREPARE_COMMIT:
+                self._enter_state('PRECOMMIT')
+                self.channel.send_to(self.coordinator, READY_COMMIT)
+                msg = self.channel.receive_from(self.coordinator)
+                self._enter_state('COMMIT')
+            else:
+                assert decision in [GLOBAL_ABORT, LOCAL_ABORT]
+                self._enter_state('ABORT')
+
 
         # Help any other participant when coordinator crashed
         num_of_others = len(self.all_participants) - 1
