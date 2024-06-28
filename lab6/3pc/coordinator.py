@@ -84,7 +84,10 @@ class Coordinator:
             msg = self.channel.receive_from(self.participants, TIMEOUT)
 
             if (not msg):
-                """ ??? """
+                self._enter_state('COMMIT')
+                # Inform all participants about global commit
+                self.channel.send_to(self.participants, GLOBAL_COMMIT)
+                return f"Coordinator {self.coordinator} terminated in state COMMIT. Not every participant could be reached."
             else:
                 assert msg[1] == READY_COMMIT
                 yet_to_receive.remove(msg[0])

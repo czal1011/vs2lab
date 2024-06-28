@@ -16,7 +16,9 @@ LOCAL_SUCCESS = 'LOCAL_SUCCESS'
 # fail-noisy crash timeout
 TIMEOUT = 1
 
-# 3pc messages
+# 3pc messages - coordinator
 PREPARE_COMMIT = 'PREPARE_COMMIT'
 
+# 3pc messages - participant
 READY_COMMIT = 'READY_COMMIT'
+NEW_COORD = 'NEW_COORD'
