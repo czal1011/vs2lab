@@ -117,17 +117,6 @@ class Participant:
                     self.terminate_after_new_coordinator()
                     return "Participant {} terminated in state {} due to {}.".format(
                         self.participant, self.state, decision)
-                    """
-                    self.channel.send_to(self.all_participants, NEED_DECISION)
-                    while True:
-                        msg = self.channel.receive_from_any()
-                        # If someone reports a final decision,
-                        # we locally adjust to it
-                        if msg[1] in [
-                                GLOBAL_COMMIT, GLOBAL_ABORT, LOCAL_ABORT]:
-                            decision = msg[1]
-                            break
-                    """
 
                 else:  # Coordinator came to a decision
                     decision = msg[1]
@@ -150,16 +139,6 @@ class Participant:
         else:
             assert decision in [GLOBAL_ABORT, LOCAL_ABORT]
             self._enter_state('ABORT')
-
-        """
-        # Help any other participant when coordinator crashed
-        num_of_others = len(self.all_participants) - 1
-        while num_of_others > 0:
-            num_of_others -= 1
-            msg = self.channel.receive_from(self.all_participants, TIMEOUT * 2)
-            if msg and msg[1] == NEED_DECISION:
-                self.channel.send_to({msg[0]}, decision)
-        """
         
         return "Participant {} terminated in state {} due to {}.".format(
             self.participant, self.state, decision)
