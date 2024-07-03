@@ -115,8 +115,8 @@ class Participant:
                     # Find new coordinator and terminate transaction
                     self.find_new_coordinator()
                     self.terminate_after_new_coordinator()
-                    return "Participant {} terminated in state {} due to {}.".format(
-                        self.participant, self.state, decision)
+                    return "Participant {} terminated in state {}.".format(
+                        self.participant, self.state)
 
                 else:  # Coordinator came to a decision
                     decision = msg[1]
@@ -127,8 +127,8 @@ class Participant:
 
             # * Start of Phase 3
             # listen to coordinator for GLOBAL_COMMIT
-            msg = self.channel.receive_from(self.all_participants, TIMEOUT)
-            if (not msg):
+            msg = self.channel.receive_from(self.coordinator, TIMEOUT)
+            if not msg:
                 self.find_new_coordinator()
                 self.terminate_after_new_coordinator()
                 return "Participant {} terminated in state {} due to {}.".format(
@@ -139,6 +139,14 @@ class Participant:
         else:
             assert decision in [GLOBAL_ABORT, LOCAL_ABORT]
             self._enter_state('ABORT')
+
+        # Help any other participant when coordinator crashed
+        num_of_others = len(self.all_participants) - 1
+        while num_of_others > 0:
+            num_of_others -= 1
+            msg = self.channel.receive_from(self.all_participants, TIMEOUT * 2)
+            if msg and msg[1] == NEED_DECISION:
+                self.channel.send_to({msg[0]}, decision)
         
         return "Participant {} terminated in state {} due to {}.".format(
             self.participant, self.state, decision)

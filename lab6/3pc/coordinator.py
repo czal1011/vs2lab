@@ -1,6 +1,6 @@
 import random
 import logging
-
+import time
 import stablelog
 
 # coordinator messages
@@ -79,6 +79,10 @@ class Coordinator:
 
         # * Start of Phase 3
         # Collect votes from all participants
+
+        if random.random() > 2/3:  # simulate a crash
+            return "Coordinator crashed in state PRECOMMIT."
+        
         yet_to_receive = list(self.participants)
         while len(yet_to_receive) > 0:
             msg = self.channel.receive_from(self.participants, TIMEOUT)
@@ -96,5 +100,6 @@ class Coordinator:
         
         # Inform all participants about global commit
         self.channel.send_to(self.participants, GLOBAL_COMMIT)
+
         return "Coordinator {} terminated in state COMMIT."\
             .format(self.coordinator)
