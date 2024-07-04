@@ -59,24 +59,29 @@ class Participant:
 
     def terminate_after_new_coordinator(self):
         msg = self.channel.receive_from(self.all_participants, TIMEOUT)
-        if msg:
-            if msg[1][0:9] == 'NEW_COORD':
-                new_coordinator = msg[1][10:]
-                if new_coordinator == self.participant:
-                    # officially become the new coordinator (P_k)
-                    if self.state in ('ABORT', 'READY'): # READY seems to be similar to WAIT
-                        self._enter_state('ABORT')
-                        self.channel.send_to(self.all_participants, GLOBAL_ABORT)
-                    elif self.state in ('PRECOMMIT', 'COMMIT'):
-                        self._enter_state('COMMIT')
-                        self.channel.send_to(self.all_participants, GLOBAL_COMMIT)
-            else:
-                if msg[1] == GLOBAL_ABORT:
+        if msg[1][0:9] == 'NEW_COORD':
+            new_coordinator = msg[1][10:]
+            if new_coordinator == self.participant:
+                # officially become the new coordinator (P_k)
+                if self.state in ('ABORT', 'READY'): # READY seems to be similar to WAIT
                     self._enter_state('ABORT')
-                else:
-                    print(msg[1])
-                    assert msg[1] == GLOBAL_COMMIT
+                    self.channel.send_to(self.all_participants, GLOBAL_ABORT)
+                elif self.state in ('PRECOMMIT', 'COMMIT'):
                     self._enter_state('COMMIT')
+                    self.channel.send_to(self.all_participants, GLOBAL_COMMIT)
+            else:
+                while(True):    
+                    msg = self.channel.receive_from_any(TIMEOUT)
+                    if msg[1][0:9] == 'NEW_COORD':
+                        continue
+                    if msg[1] == GLOBAL_ABORT:
+                        self._enter_state('ABORT')
+                        return
+                    else:
+                        print(msg[1])
+                        assert msg[1] == GLOBAL_COMMIT
+                        self._enter_state('COMMIT')
+                        return
 
     def run(self):
         # Wait for start of joint commit

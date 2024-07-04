@@ -80,7 +80,7 @@ class Coordinator:
         # * Start of Phase 3
         # Collect votes from all participants
 
-        if random.random() > 2/3:  # simulate a crash
+        if random.random() >2/3:  # simulate a crash
             return "Coordinator crashed in state PRECOMMIT."
         
         yet_to_receive = list(self.participants)
